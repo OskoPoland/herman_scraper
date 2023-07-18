@@ -1,6 +1,6 @@
 #Python webscraper using selenium that will help me find a Herman Miller Mirras/Aeron chair for a steal by scraping new entries
 #every 5hrs then formatting fitting entries into emails using
-
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,6 +11,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
+from dotenv import load_dotenv
 
 chromeDriverPath = "C:\\Users\\Vinr5\\OneDrive\\Documents\\Repositories\\pyscraper\\chromedriver"
 
@@ -51,7 +52,6 @@ for div in div_list_itemPrices:
         flag = True
 #Zip together into dictionary
 scraped = dict(zip(items, prices))
-print(scraped)
 
 #Creating and formatting the email
 sender = "vinr567@gmail.com"
@@ -63,19 +63,23 @@ if flag:
     msg_container['Subject'] = "DISCOUNT PRESENT CHECK ASAP " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
 else:
     msg_container['Subject'] = "Herman Scrape" + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-msg_container['From'] = sender
-msg_container['To'] = reciever
+msg_container['From'] = os.getenv('email')
+msg_container['To'] = os.getenv('reciever')
 
 #Creating Body of Message
 body_string = ""
 for item in scraped.keys():
     body_string += "{price} {item} \n".format(price=scraped.get(item), item=item)
 
+print(body_string)
+
 #Create plain text and html of email
 out_text ="Current Scrapes Obtained From {link} \n".format(link=link) + body_string 
-out_html = """\
+out_html = """
 <html>
-    <head>Current Scrapes Obtained From {link}</head>
+    <head>
+        <title>Current Scrapes Obtained From: {link}</title>
+    </head>
     <body>
         {body_string}
     </body>
@@ -91,8 +95,16 @@ msg_container.attach(p_text)
 msg_container.attach(p_html)
 
 #Send message using localhosted server
-s = smtplib.SMTP('localhost')
-s.sendmail(sender, reciever, msg_container.as_string())
-s.quit()
+load_dotenv()
+user = os.getenv('sender')
+pcode = os.getenv('pass')
+reciever = os.getenv('reciever')
 
+print(user + ' ' + pcode)
+
+s = smtplib.SMTP('smtp.gmail.com', 587)
+s.starttls()
+s.login(user,  pcode)
+s.sendmail(sender, reciever, msg_container.as_string())
+s.close()
 driver.quit()
